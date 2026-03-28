@@ -30,6 +30,7 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState(null)
   const [speechState, setSpeechState] = useState('idle') // 'idle' | 'speaking' | 'paused'
   const prevLanguage = useRef('en')
+  const audioRef = useRef(null)
 
   const plainText = aiContent?.plain || null
   const currentJargon = aiContent?.jargon || null
@@ -95,17 +96,15 @@ export default function App() {
     setQuizOpen(false)
   }
 
-  const handleSpeak = () => {
-    if (!('speechSynthesis' in window)) return
-
+  const handleSpeak = async () => {
     if (speechState === 'speaking') {
-      window.speechSynthesis.pause()
+      audioRef.current?.pause()
       setSpeechState('paused')
       return
     }
 
     if (speechState === 'paused') {
-      window.speechSynthesis.resume()
+      audioRef.current?.play()
       setSpeechState('speaking')
       return
     }
@@ -124,14 +123,31 @@ export default function App() {
       })
       .join('. ')
 
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.9
-    utterance.onstart = () => setSpeechState('speaking')
-    utterance.onend = () => setSpeechState('idle')
-    utterance.onpause = () => setSpeechState('paused')
-    utterance.onresume = () => setSpeechState('speaking')
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(utterance)
+    setSpeechState('speaking')
+
+    try {
+      const res = await fetch('http://localhost:3000/api/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+
+      if (audioRef.current) {
+        audioRef.current.pause()
+        URL.revokeObjectURL(audioRef.current.src)
+      }
+
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => setSpeechState('idle')
+      audio.play()
+    } catch (err) {
+      console.error('ElevenLabs TTS failed:', err)
+      setSpeechState('idle')
+    }
   }
 
   return (
