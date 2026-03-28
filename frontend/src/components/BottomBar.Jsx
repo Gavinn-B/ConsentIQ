@@ -1,10 +1,22 @@
 import './BottomBar.css'
 
-export default function BottomBar({ progress, quizComplete, onOpenQuiz }) {
+const UI_TEXT = {
+  en: { label: 'Comprehension Check', quiz: 'Take Comprehension Quiz', done: 'Quiz Complete ✓', sign: 'Sign & Confirm' },
+  es: { label: 'Verificación de Comprensión', quiz: 'Tomar el Cuestionario', done: 'Cuestionario Completo ✓', sign: 'Firmar y Confirmar' },
+  fr: { label: 'Vérification de Compréhension', quiz: 'Passer le Quiz', done: 'Quiz Terminé ✓', sign: 'Signer et Confirmer' },
+  de: { label: 'Verständnisüberprüfung', quiz: 'Quiz Starten', done: 'Quiz Abgeschlossen ✓', sign: 'Unterschreiben & Bestätigen' },
+  pt: { label: 'Verificação de Compreensão', quiz: 'Fazer o Questionário', done: 'Questionário Concluído ✓', sign: 'Assinar e Confirmar' },
+  it: { label: 'Verifica della Comprensione', quiz: 'Inizia il Quiz', done: 'Quiz Completato ✓', sign: 'Firma e Conferma' },
+  pl: { label: 'Sprawdzenie Rozumienia', quiz: 'Rozpocznij Quiz', done: 'Quiz Ukończony ✓', sign: 'Podpisz i Potwierdź' },
+  hi: { label: 'समझ जांच', quiz: 'प्रश्नोत्तरी लें', done: 'प्रश्नोत्तरी पूर्ण ✓', sign: 'हस्ताक्षर करें और पुष्टि करें' },
+}
+
+export default function BottomBar({ progress, quizComplete, onOpenQuiz, language = 'en' }) {
+  const ui = UI_TEXT[language] || UI_TEXT.en
   return (
     <div className="bottom-bar">
       <div className="quiz-section">
-        <div className="quiz-label">Comprehension Quiz completion</div>
+        <div className="quiz-label">{ui.label}</div>
         <div className="progress-track">
           <div
             className="progress-fill"
@@ -19,7 +31,7 @@ export default function BottomBar({ progress, quizComplete, onOpenQuiz }) {
           onClick={!quizComplete ? onOpenQuiz : undefined}
           disabled={quizComplete}
         >
-          {quizComplete ? 'Quiz Complete ✓' : 'Take Comprehension Quiz'}
+          {quizComplete ? ui.done : ui.quiz}
         </button>
 
         <button
@@ -27,7 +39,7 @@ export default function BottomBar({ progress, quizComplete, onOpenQuiz }) {
           disabled={!quizComplete}
           onClick={() => quizComplete && alert('Consent signed and recorded.')}
         >
-          Sign &amp; Confirm
+          {ui.sign}
         </button>
       </div>
     </div>

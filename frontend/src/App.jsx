@@ -216,9 +216,12 @@ export default function App() {
         progress={progress}
         quizComplete={quizComplete}
         onOpenQuiz={() => setQuizOpen(true)}
+        language={language}
       />
       {quizOpen && (
         <QuizModal
+          keyPoints={aiContent?.keyPoints || []}
+          language={language}
           onClose={() => setQuizOpen(false)}
           onComplete={handleQuizComplete}
         />
