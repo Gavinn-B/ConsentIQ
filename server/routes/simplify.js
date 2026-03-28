@@ -1,6 +1,7 @@
 import { Router } from "express";
 import upload from "../middleware/upload.js";
 import { extractTextFromPdf } from "../utils/pdfParser.js";
+import { textToSpeech } from "../utils/elevenlabs.js";
 import { simplifyMedicalText } from "../services/geminiService.js";
 import { createRequire } from "module";
 
