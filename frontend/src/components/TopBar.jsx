@@ -26,8 +26,8 @@ export default function TopBar({ language, onLanguageChange, onSpeak, speechStat
     <div className="topbar">
       {/* App branding */}
       <div className="logo">
-        <span className="logo-clear">Clear</span>
-        <span className="logo-consent">Consent</span>
+        <span className="logo-clear">Consent</span>
+        <span className="logo-consent">IQ</span>
       </div>
 
       {/* Language selector — triggers re-translation of the entire document */}
