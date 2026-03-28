@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import './ConsentPanel.css'
 
+// Icon map for the listen button inside the jargon popup
 const LISTEN_ICONS = {
   idle:     '🔊',
   loading:  '…',
@@ -9,9 +10,11 @@ const LISTEN_ICONS = {
   paused:   '▶',
 }
 
+// Popup rendered via portal so it escapes overflow-hidden containers.
+// Positioned directly below the clicked term, clamped to viewport width.
 function Popup({ term, definition, anchorEl, onClose, onSpeakWord }) {
   const popupRef = useRef(null)
-  const popupAudioRef = useRef(null)
+  const popupAudioRef = useRef(null) // Audio object owned by this popup instance
   const [listenState, setListenState] = useState('idle')
 
   const pos = (() => {
@@ -26,14 +29,14 @@ function Popup({ term, definition, anchorEl, onClose, onSpeakWord }) {
     return { top, left }
   })()
 
-  // Stop popup audio when dismissed
+  // Pause popup audio when the popup unmounts
   useEffect(() => {
     return () => {
       popupAudioRef.current?.pause()
     }
   }, [])
 
-  // Close on outside click
+  // Close popup on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (popupRef.current && !popupRef.current.contains(e.target)) {
@@ -44,10 +47,12 @@ function Popup({ term, definition, anchorEl, onClose, onSpeakWord }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [onClose])
 
+  // Definition can be a plain string or an object with { definition, translation }
   const isObject = typeof definition === 'object'
   const translatedTerm = isObject ? definition.translation : null
   const definitionText = isObject ? definition.definition : definition
 
+  // Handles play/pause/resume for the popup's own TTS audio
   const handleListen = async () => {
     if (listenState === 'speaking') {
       popupAudioRef.current?.pause()
@@ -83,6 +88,7 @@ function Popup({ term, definition, anchorEl, onClose, onSpeakWord }) {
           {LISTEN_ICONS[listenState]}
         </button>
       </div>
+      {/* Show translated term only if it differs from the English term */}
       {translatedTerm && translatedTerm.toLowerCase() !== term.toLowerCase() && (
         <span className="popup-translation">{translatedTerm}</span>
       )}
@@ -92,11 +98,14 @@ function Popup({ term, definition, anchorEl, onClose, onSpeakWord }) {
   )
 }
 
+// Renders a single text segment, splitting on __term__ markers.
+// Terms found in jargonData are rendered as clickable highlights.
 function renderSegment(text, jargonData, onHighlightClick, activePopup, segIndex) {
   const parts = text.split(/__(.*?)__/g)
 
   return parts.map((part, i) => {
     if (i % 2 === 1) {
+      // Odd indices are the captured jargon terms between __ markers
       const entry = jargonData
         ? Object.entries(jargonData).find(
             ([key]) => key.toLowerCase() === part.toLowerCase()
@@ -123,6 +132,8 @@ function renderSegment(text, jargonData, onHighlightClick, activePopup, segIndex
   })
 }
 
+// Renders a section's text as either a bullet list (if it starts with *)
+// or a plain paragraph, with jargon terms highlighted inline.
 function renderText(text, jargonData, onHighlightClick, activePopup, sectionIndex) {
   const trimmed = text.trim()
 
@@ -149,6 +160,7 @@ function renderText(text, jargonData, onHighlightClick, activePopup, sectionInde
 export default function ConsentPanel({ title, paragraphs, jargonData, isPlain, loading, onPopupOpen, onPopupClose, onSpeakWord }) {
   const [activePopup, setActivePopup] = useState(null)
 
+  // Opening a popup notifies App to pause main TTS; closing resumes it
   const handleHighlightClick = (popup) => {
     if (popup && onPopupOpen) onPopupOpen()
     if (!popup && onPopupClose) onPopupClose()
@@ -164,8 +176,10 @@ export default function ConsentPanel({ title, paragraphs, jargonData, isPlain, l
     <div className={`panel ${isPlain ? 'panel-plain' : ''}`}>
       {loading && <div className="panel-loading">Translating...</div>}
       <h2 className="panel-title">{title}</h2>
+
       <div className="panel-body">
         {paragraphs.map((section, i) => {
+          // Sections can be objects with { title, text } or plain strings
           if (section && typeof section === 'object' && section.title) {
             return (
               <div key={i} className="panel-section">

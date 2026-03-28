@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './QuizModal.css'
 
+// Translated UI strings for all supported languages
 const UI_TEXT = {
   en: { title: 'Before You Sign', sub: 'Please read and check each point to confirm you understand.', close: 'Close', confirm: 'I Understand', signed: 'You have now signed and confirmed.', ratingLabel: 'How would you rate your experience?', done: 'Done' },
   es: { title: 'Antes de Firmar', sub: 'Lea y marque cada punto para confirmar que entiende.', close: 'Cerrar', confirm: 'Entiendo', signed: 'Ha firmado y confirmado.', ratingLabel: '¿Cómo calificaría su experiencia?', done: 'Listo' },
@@ -12,6 +13,7 @@ const UI_TEXT = {
   hi: { title: 'हस्ताक्षर से पहले', sub: 'प्रत्येक बिंदु पढ़ें और समझ की पुष्टि करने के लिए चेक करें।', close: 'बंद करें', confirm: 'मैं समझता हूँ', signed: 'आपने अब हस्ताक्षर और पुष्टि कर दी है।', ratingLabel: 'आप अपने अनुभव को कैसे रेट करेंगे?', done: 'हो गया' },
 }
 
+// Fallback key points used if the AI doesn't return any
 const FALLBACK_POINTS = [
   'You are giving permission for a medical procedure to be performed on you.',
   'All medical procedures carry some risk, including rare but serious complications.',
@@ -22,10 +24,13 @@ const FALLBACK_POINTS = [
 
 export default function QuizModal({ keyPoints = [], language = 'en', onClose, onComplete, alreadySigned = false }) {
   const ui = UI_TEXT[language] || UI_TEXT.en
+
+  // Strip __ markers that Gemini sometimes wraps around jargon terms in key points
   const points = (keyPoints.length > 0 ? keyPoints : FALLBACK_POINTS)
     .map(p => p.replace(/__/g, ''))
+
   const [checked, setChecked] = useState(() => new Array(points.length).fill(false))
-  const [signed, setSigned] = useState(alreadySigned)
+  const [signed, setSigned] = useState(alreadySigned) // Skip checklist if already signed
   const [rating, setRating] = useState(0)
   const [hovered, setHovered] = useState(0)
 
@@ -35,6 +40,7 @@ export default function QuizModal({ keyPoints = [], language = 'en', onClose, on
     setChecked(prev => prev.map((v, idx) => idx === i ? !v : v))
   }
 
+  // Mark as signed and notify parent to update progress
   const handleConfirm = () => {
     setSigned(true)
     onComplete()
@@ -44,6 +50,7 @@ export default function QuizModal({ keyPoints = [], language = 'en', onClose, on
     onClose()
   }
 
+  // Confirmation screen — shown after signing or when re-opening after completion
   if (signed) {
     return (
       <div className="modal-overlay">
@@ -51,6 +58,7 @@ export default function QuizModal({ keyPoints = [], language = 'en', onClose, on
           <div className="confirm-checkmark">✓</div>
           <p className="confirm-signed">{ui.signed}</p>
 
+          {/* 1–5 star experience rating — hover previews, click to select */}
           <div className="rating-section">
             <p className="rating-label">{ui.ratingLabel}</p>
             <div className="rating-stars">
@@ -76,6 +84,7 @@ export default function QuizModal({ keyPoints = [], language = 'en', onClose, on
     )
   }
 
+  // Checklist screen — all points must be checked before confirming
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -99,6 +108,7 @@ export default function QuizModal({ keyPoints = [], language = 'en', onClose, on
 
         <div className="modal-btn-row">
           <button className="modal-btn" onClick={onClose}>{ui.close}</button>
+          {/* Confirm button stays disabled until every point is checked */}
           <button
             className="modal-btn modal-btn-primary"
             disabled={!allChecked}

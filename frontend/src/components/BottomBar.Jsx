@@ -1,5 +1,6 @@
 import './BottomBar.css'
 
+// Translated UI strings for all supported languages
 const UI_TEXT = {
   en: { label: 'Comprehension Check', quiz: 'Take Comprehension Quiz', done: 'Quiz Complete ✓', sign: 'Sign & Confirm' },
   es: { label: 'Verificación de Comprensión', quiz: 'Tomar el Cuestionario', done: 'Cuestionario Completo ✓', sign: 'Firmar y Confirmar' },
@@ -15,6 +16,7 @@ export default function BottomBar({ progress, quizComplete, onOpenQuiz, onSign, 
   const ui = UI_TEXT[language] || UI_TEXT.en
   return (
     <div className="bottom-bar">
+      {/* Progress bar — fills to 100% once the quiz is completed */}
       <div className="quiz-section">
         <div className="quiz-label">{ui.label}</div>
         <div className="progress-track">
@@ -26,6 +28,7 @@ export default function BottomBar({ progress, quizComplete, onOpenQuiz, onSign, 
       </div>
 
       <div className="btn-area">
+        {/* Quiz button — disabled and replaced with a done state after completion */}
         <button
           className={`btn btn-quiz ${quizComplete ? 'btn-quiz-done' : ''}`}
           onClick={!quizComplete ? onOpenQuiz : undefined}
@@ -34,6 +37,7 @@ export default function BottomBar({ progress, quizComplete, onOpenQuiz, onSign, 
           {quizComplete ? ui.done : ui.quiz}
         </button>
 
+        {/* Sign button — only active after quiz is complete; re-opens the modal to the confirmation screen */}
         <button
           className={`btn btn-sign ${quizComplete ? 'btn-sign-active' : ''}`}
           disabled={!quizComplete}

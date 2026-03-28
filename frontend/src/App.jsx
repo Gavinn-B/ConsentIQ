@@ -8,6 +8,7 @@ import BottomBar from './components/BottomBar'
 import QuizModal from './components/QuizModal'
 import './App.css'
 
+// Sends raw text and selected language to the backend for AI simplification
 async function callServer(rawText, language) {
   const res = await fetch('http://localhost:3000/api/simplify', {
     method: 'POST',
@@ -18,6 +19,7 @@ async function callServer(rawText, language) {
 }
 
 export default function App() {
+  // --- Global state ---
   const [language, setLanguage] = useState('en')
   const [quizOpen, setQuizOpen] = useState(false)
   const [quizComplete, setQuizComplete] = useState(false)
@@ -29,13 +31,15 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [statusMsg, setStatusMsg] = useState(null)
   const [speechState, setSpeechState] = useState('idle') // 'idle' | 'speaking' | 'paused'
+
   const prevLanguage = useRef('en')
-  const audioRef = useRef(null)
+  const audioRef = useRef(null)         // Holds the main TTS Audio object
+  const mainWasPlayingRef = useRef(false) // Tracks if main audio was playing when a popup opened
 
   const plainText = aiContent?.plain || null
   const currentJargon = aiContent?.jargon || null
 
-  // Re-translate when language changes, but only if a PDF has been processed
+  // Re-translate the document whenever the language changes (only if a PDF has been processed)
   useEffect(() => {
     if (!rawText || language === prevLanguage.current) return
     prevLanguage.current = language
@@ -55,6 +59,7 @@ export default function App() {
       .finally(() => setLoading(false))
   }, [language, rawText])
 
+  // Extracts text from the uploaded PDF using PDF.js, then sends it to the server
   const handleFileUpload = async (file) => {
     setLoading(true)
     setFileName(file.name)
@@ -96,8 +101,8 @@ export default function App() {
     setQuizOpen(false)
   }
 
-  const mainWasPlayingRef = useRef(false)
-
+  // --- Popup / main audio coordination ---
+  // Pauses main TTS when a jargon popup is opened, so both don't play at once
   const handlePauseForPopup = () => {
     if (speechState === 'speaking') {
       audioRef.current?.pause()
@@ -108,6 +113,7 @@ export default function App() {
     }
   }
 
+  // Resumes main TTS when the popup is closed, if it was playing before
   const handlePopupClose = () => {
     if (mainWasPlayingRef.current && audioRef.current) {
       audioRef.current.play()
@@ -116,7 +122,8 @@ export default function App() {
     mainWasPlayingRef.current = false
   }
 
-  // Returns the Audio object so the Popup can control pause/resume itself
+  // Fetches TTS audio for a single term+definition from ElevenLabs.
+  // Returns the Audio object so the popup can own and control playback (pause/resume).
   const handleSpeakWord = async (term, definition) => {
     const defText = typeof definition === 'object' ? definition.definition : definition
     const text = `${term}. ${defText}`
@@ -137,6 +144,7 @@ export default function App() {
     }
   }
 
+  // Handles play/pause/resume for the full document read-aloud via ElevenLabs
   const handleSpeak = async () => {
     if (speechState === 'speaking') {
       audioRef.current?.pause()
@@ -152,6 +160,7 @@ export default function App() {
 
     if (!plainText) return
 
+    // Strip formatting markers before sending to TTS
     const text = plainText
       .map(s => {
         if (typeof s === 'object') {
@@ -201,6 +210,7 @@ export default function App() {
       />
 
       <div className="panels">
+        {/* Left panel: PDF viewer or upload prompt */}
         {pdfUrl ? (
           <div className="pdf-panel">
             <div className="pdf-panel-header">
@@ -241,6 +251,7 @@ export default function App() {
 
         <div className="divider" />
 
+        {/* Right panel: AI-simplified consent text or placeholder */}
         {plainText ? (
           <div className="right-pane">
             <ConsentPanel
@@ -279,6 +290,8 @@ export default function App() {
         onSign={() => setQuizOpen(true)}
         language={language}
       />
+
+      {/* Quiz modal — re-opens to the confirmation screen if already signed */}
       {quizOpen && (
         <QuizModal
           keyPoints={aiContent?.keyPoints || []}

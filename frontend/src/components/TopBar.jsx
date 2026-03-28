@@ -1,5 +1,6 @@
 import './TopBar.css'
 
+// All supported languages available in the language selector
 const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'es', label: 'Español' },
@@ -11,6 +12,7 @@ const LANGUAGES = [
   { code: 'hi', label: 'Hindi' },
 ]
 
+// Icon and tooltip for each TTS playback state
 const SPEECH_ICONS = {
   idle:     { icon: '🔊', title: 'Read aloud' },
   speaking: { icon: '⏸', title: 'Pause' },
@@ -22,11 +24,13 @@ export default function TopBar({ language, onLanguageChange, onSpeak, speechStat
 
   return (
     <div className="topbar">
+      {/* App branding */}
       <div className="logo">
         <span className="logo-clear">Clear</span>
         <span className="logo-consent">Consent</span>
       </div>
 
+      {/* Language selector — triggers re-translation of the entire document */}
       <div className="lang-area">
         <span className="lang-label">Language</span>
         <select
@@ -42,6 +46,7 @@ export default function TopBar({ language, onLanguageChange, onSpeak, speechStat
         </select>
       </div>
 
+      {/* Read-aloud button — icon and tooltip update based on current speech state */}
       <button className="speaker-btn" onClick={onSpeak} title={title}>
         {icon}
       </button>
