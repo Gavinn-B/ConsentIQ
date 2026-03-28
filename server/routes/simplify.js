@@ -1,7 +1,6 @@
 import { Router } from "express";
 import upload from "../middleware/upload.js";
 import { extractTextFromPdf } from "../utils/pdfParser.js";
-import fs from "fs/promises";
 
 const router = Router();
 
@@ -11,8 +10,7 @@ router.post("/simplify", upload.single('file'), async (req, res) => {
 
         if(req.file){
             // PDF path 
-            rawText = await extractTextFromPdf(req.file.path);
-            await fs.unlink(req.file.path); // clean up tmp file
+            rawText = await extractTextFromPdf(req.file.buffer);
         } else if (req.body.text){
             // plain text path 
             rawText = req.body.text;
@@ -22,7 +20,7 @@ router.post("/simplify", upload.single('file'), async (req, res) => {
         // TODO: call gemini api 
         // const simplify = await 
         res.json({ 
-            rawText,          // confirms pdf parsed correctly
+            rawText,          // confirms pdf/text parsed correctly
             summary: 'MOCK SUMMARY - Gemini not connected yet' 
         });
     }
