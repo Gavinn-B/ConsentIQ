@@ -1,0 +1,77 @@
+.bottom-bar {
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  padding: 14px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: center;
+  height: 72px;
+}
+
+.quiz-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.progress-track {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #378ADD;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.btn-area {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: 0.15s;
+}
+
+.btn-quiz {
+  background: #378ADD;
+  color: white;
+}
+
+.btn-quiz:hover {
+  background: #2a6db5;
+}
+
+.btn-quiz-done {
+  background: #EAF3DE;
+  color: #3B6D11;
+  cursor: default;
+}
+
+.btn-sign {
+  background: #4CAF50;
+  color: white;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-sign-active {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.btn-sign-active:hover {
+  background: #43a047;
+}

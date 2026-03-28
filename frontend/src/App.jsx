@@ -1,121 +1,80 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import TopBar from './components/TopBar'
+import ConsentPanel from './components/ConsentPanel'
+import BottomBar from './components/BottomBar'
+import QuizModal from './components/QuizModal'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const legalText = [
+  `I AM "MEDICAL CONSENT" (AGENT), hereby providing informed consent to and authorizing surgeons to perform the procedure in the coordination of the operation of laparoscopic cholecystectomy, and the type of surgery necessary to remove your gallbladder using small cuts in your belly, it being in the patient's medical interest and there being a great possibility of comprehension.`,
+  `I immediately allow the aforementioned pleasantries by a type of surgery or vertroronicals, canvass for a formal accreditation copy of gallbladder, and patient signatures of the phone merits, inspection, consent and project confirmation for all parties involved.`,
+  `A laparoscopic cholecystectomy is an underperformance of surgery, laparoscopic access by applying the surgeon's personalized governmental medicine, whether patient to entangle or notwithstanding medical, subject to all applicable laws and standards of clinical inculcation.`
+]
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+const plainText = [
+  `I am supposed to be an important form for your permission before surgery to remove your gallbladder using small cuts in your belly.`,
+  `__laparoscopic cholecystectomy__ is a type of surgery to remove your gallbladder using small cuts in your belly. You understand that your surgeon will perform __general anesthesia__ during the procedure. This means you will be fully asleep and will not feel any pain.`,
+  `A laparoscopic cholecystectomy is a common and routine surgery to remove your gallbladder using small cuts in your belly.`
+]
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+const jargonMap = {
+  'laparoscopic cholecystectomy': 'A type of surgery to remove your gallbladder using small cuts in your belly with a tiny camera.',
+  'general anesthesia': 'Medicine that puts you in a deep sleep so you feel no pain during surgery.'
 }
 
-export default App
+export default function App() {
+  const [isEnglish, setIsEnglish] = useState(true)
+  const [quizOpen, setQuizOpen] = useState(false)
+  const [quizComplete, setQuizComplete] = useState(false)
+  const [progress, setProgress] = useState(30)
+
+  const handleQuizComplete = () => {
+    setQuizComplete(true)
+    setProgress(100)
+    setQuizOpen(false)
+  }
+
+  const handleSpeak = () => {
+    const text = plainText.join(' ').replace(/__([^_]+)__/g, '$1')
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.9
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+
+  return (
+    <div className="app">
+      <TopBar
+        isEnglish={isEnglish}
+        onToggle={() => setIsEnglish(!isEnglish)}
+        onSpeak={handleSpeak}
+      />
+      <div className="panels">
+        <ConsentPanel
+          title="Legal Form"
+          paragraphs={legalText}
+          jargonMap={{}}
+        />
+        <div className="divider" />
+        <ConsentPanel
+          title="Plain English"
+          paragraphs={plainText}
+          jargonMap={jargonMap}
+          isPlain={true}
+        />
+      </div>
+      <BottomBar
+        progress={progress}
+        quizComplete={quizComplete}
+        onOpenQuiz={() => setQuizOpen(true)}
+      />
+      {quizOpen && (
+        <QuizModal
+          onClose={() => setQuizOpen(false)}
+          onComplete={handleQuizComplete}
+        />
+      )}
+    </div>
+  )
+}
