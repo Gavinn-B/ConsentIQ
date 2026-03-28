@@ -11,7 +11,15 @@ const LANGUAGES = [
   { code: 'hi', label: 'Hindi' },
 ]
 
-export default function TopBar({ language, onLanguageChange, onSpeak }) {
+const SPEECH_ICONS = {
+  idle:     { icon: '🔊', title: 'Read aloud' },
+  speaking: { icon: '⏸', title: 'Pause' },
+  paused:   { icon: '▶', title: 'Resume' },
+}
+
+export default function TopBar({ language, onLanguageChange, onSpeak, speechState = 'idle' }) {
+  const { icon, title } = SPEECH_ICONS[speechState] || SPEECH_ICONS.idle
+
   return (
     <div className="topbar">
       <div className="logo">
@@ -34,8 +42,8 @@ export default function TopBar({ language, onLanguageChange, onSpeak }) {
         </select>
       </div>
 
-      <button className="speaker-btn" onClick={onSpeak} title="Read aloud">
-        &#128266;
+      <button className="speaker-btn" onClick={onSpeak} title={title}>
+        {icon}
       </button>
     </div>
   )

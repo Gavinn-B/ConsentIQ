@@ -28,6 +28,7 @@ export default function App() {
   const [aiContent, setAiContent] = useState(null)
   const [loading, setLoading] = useState(false)
   const [statusMsg, setStatusMsg] = useState(null)
+  const [speechState, setSpeechState] = useState('idle') // 'idle' | 'speaking' | 'paused'
   const prevLanguage = useRef('en')
 
   const plainText = aiContent?.plain || null
@@ -95,16 +96,42 @@ export default function App() {
   }
 
   const handleSpeak = () => {
-    if (!plainText) return
-    const text = plainText
-      .map(s => typeof s === 'object' ? s.text : s)
-      .join(' ')
-      .replace(/__([^_]+)__/g, '$1')
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 0.9
-      window.speechSynthesis.speak(utterance)
+    if (!('speechSynthesis' in window)) return
+
+    if (speechState === 'speaking') {
+      window.speechSynthesis.pause()
+      setSpeechState('paused')
+      return
     }
+
+    if (speechState === 'paused') {
+      window.speechSynthesis.resume()
+      setSpeechState('speaking')
+      return
+    }
+
+    if (!plainText) return
+
+    const text = plainText
+      .map(s => {
+        if (typeof s === 'object') {
+          const body = (s.text || '')
+            .replace(/\*\s*/g, '')
+            .replace(/__([^_]+)__/g, '$1')
+          return s.title ? `${s.title}. ${body}` : body
+        }
+        return s.replace(/\*\s*/g, '').replace(/__([^_]+)__/g, '$1')
+      })
+      .join('. ')
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.9
+    utterance.onstart = () => setSpeechState('speaking')
+    utterance.onend = () => setSpeechState('idle')
+    utterance.onpause = () => setSpeechState('paused')
+    utterance.onresume = () => setSpeechState('speaking')
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
   }
 
   return (
@@ -113,6 +140,7 @@ export default function App() {
         language={language}
         onLanguageChange={setLanguage}
         onSpeak={handleSpeak}
+        speechState={speechState}
       />
 
       <div className="panels">
