@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import './ConsentPanel.css'
 
-function parseParagraph(text, jargonMap, openPopup, activePopup) {
-  if (!jargonMap || Object.keys(jargonMap).length === 0) {
+function parseParagraph(text, jargonData, openPopup, activePopup) {
+  if (!jargonData || Object.keys(jargonData).length === 0) {
     return <p className="panel-text">{text}</p>
   }
 
-  const terms = Object.keys(jargonMap)
+  const terms = Object.keys(jargonData)
   const regex = new RegExp(`__(${terms.join('|')})__`, 'gi')
   const parts = text.split(regex)
 
@@ -16,6 +16,7 @@ function parseParagraph(text, jargonMap, openPopup, activePopup) {
         const matched = terms.find(t => t.toLowerCase() === part.toLowerCase())
         if (matched) {
           const popupId = `${matched}-${i}`
+          const entry = jargonData[matched]
           return (
             <span key={i} className="highlight-wrap">
               <span
@@ -26,8 +27,8 @@ function parseParagraph(text, jargonMap, openPopup, activePopup) {
               </span>
               {activePopup === popupId && (
                 <span className="popup">
-                  <span className="popup-term">{matched}</span>
-                  <span className="popup-def">{jargonMap[matched]}</span>
+                  <span className="popup-term">{entry.translated}</span>
+                  <span className="popup-def">{entry.definition}</span>
                 </span>
               )}
             </span>
@@ -39,7 +40,7 @@ function parseParagraph(text, jargonMap, openPopup, activePopup) {
   )
 }
 
-export default function ConsentPanel({ title, paragraphs, jargonMap, isPlain }) {
+export default function ConsentPanel({ title, paragraphs, jargonData, isPlain }) {
   const [activePopup, setActivePopup] = useState(null)
 
   return (
@@ -49,7 +50,7 @@ export default function ConsentPanel({ title, paragraphs, jargonMap, isPlain }) 
       <h2 className="panel-title">{title}</h2>
       {paragraphs.map((para, i) => (
         <div key={i}>
-          {parseParagraph(para, jargonMap, setActivePopup, activePopup)}
+          {parseParagraph(para, jargonData, setActivePopup, activePopup)}
         </div>
       ))}
     </div>

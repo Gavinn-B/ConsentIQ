@@ -5,12 +5,10 @@ const LANGUAGES = [
   { code: 'es', label: 'Español' },
   { code: 'fr', label: 'Français' },
   { code: 'de', label: 'Deutsch' },
-  { code: 'zh', label: 'Chinese' },
-  { code: 'hi', label: 'Hindi' },
-  { code: 'ar', label: 'Arabic' },
   { code: 'pt', label: 'Português' },
-  { code: 'ru', label: 'Russian' },
-  { code: 'ko', label: 'Korean' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'pl', label: 'Polish' },
+  { code: 'hi', label: 'Hindi' },
 ]
 
 export default function TopBar({ language, onLanguageChange, onSpeak }) {
