@@ -5,7 +5,7 @@
 // from the .env file by dotenv (configured in test-server.js).
 
 import fetch from 'node-fetch';
-import SYSTEM_PROMPT from '../prompts/systemPrompt';
+import SYSTEM_PROMPT from '../prompts/systemPrompt.js'; 
 
 export async function simplifyMedicalText(rawText) {
   const apiKey = process.env.GEMINI_API_KEY; // Read API key in .env file

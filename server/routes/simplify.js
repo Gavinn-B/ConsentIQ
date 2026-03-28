@@ -4,7 +4,6 @@ import { extractTextFromPdf } from "../utils/pdfParser.js";
 import { textToSpeech } from "../utils/elevenlabs.js";
 import { simplifyMedicalText } from "../services/geminiService.js";
 import { createRequire } from "module";
-
 // JSON imports need createRequire in ES module context
 const require = createRequire(import.meta.url);
 const jargonGlossary = require('../data/jargonGlossary.json');
@@ -80,6 +79,25 @@ router.post("/quiz-data", (req, res) => {
         .filter(Boolean);
 
     res.json({ quizData });
+});
+
+router.post('/speak', async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: 'No text provided' });
+  
+        const audioStream = await textToSpeech(text);
+  
+        res.setHeader('Content-Type', 'audio/mpeg');
+        for await (const chunk of audioStream) {
+            res.write(chunk);
+        }
+        res.end();
+  
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'TTS failed' });
+    }
 });
 
 export default router;
