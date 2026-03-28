@@ -23,7 +23,7 @@ const jargonMap = {
 }
 
 export default function App() {
-  const [isEnglish, setIsEnglish] = useState(true)
+  const [language, setLanguage] = useState('en')
   const [quizOpen, setQuizOpen] = useState(false)
   const [quizComplete, setQuizComplete] = useState(false)
   const [progress, setProgress] = useState(30)
@@ -46,10 +46,10 @@ export default function App() {
   return (
     <div className="app">
       <TopBar
-        isEnglish={isEnglish}
-        onToggle={() => setIsEnglish(!isEnglish)}
-        onSpeak={handleSpeak}
-      />
+          language={language}
+          onLanguageChange={setLanguage}
+          onSpeak={handleSpeak}
+        />
       <div className="panels">
         <ConsentPanel
           title="Legal Form"
