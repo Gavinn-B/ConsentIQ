@@ -38,7 +38,7 @@ router.post("/simplify", upload.single('file'), async (req, res) => {
 
 Rewrite the following consent form in simple, plain ${languageName} that anyone can understand.
 
-Return a JSON object with exactly two fields:
+Return a JSON object with exactly three fields:
 
 1. "plain": an array of section objects. Each object has:
    - "title": a short section heading written in ${languageName}
@@ -51,6 +51,10 @@ Return a JSON object with exactly two fields:
 2. "jargon": an object where each key is the English term you wrapped in __ and the value is an object with:
    - "translation": the term translated into ${languageName} (if ${languageName} is English, same as the key)
    - "definition": a simple one-sentence definition in ${languageName}
+
+3. "keyPoints": an array of 3 to 5 short, plain-language sentences — the most important things this specific patient must understand before signing. Written in ${languageName}.
+
+   Cover things like: what procedure they are agreeing to, the main risks, the fact that they can ask questions or withdraw consent, and any critical details unique to this form. Each point should be one clear sentence a patient can read and confirm they understand.
 
 Only return valid JSON. No markdown, no code blocks, just the raw JSON.
 
