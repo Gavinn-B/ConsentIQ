@@ -276,6 +276,7 @@ export default function App() {
         progress={progress}
         quizComplete={quizComplete}
         onOpenQuiz={() => setQuizOpen(true)}
+        onSign={() => setQuizOpen(true)}
         language={language}
       />
       {quizOpen && (
@@ -284,6 +285,7 @@ export default function App() {
           language={language}
           onClose={() => setQuizOpen(false)}
           onComplete={handleQuizComplete}
+          alreadySigned={quizComplete}
         />
       )}
     </div>

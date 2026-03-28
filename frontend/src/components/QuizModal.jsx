@@ -2,14 +2,14 @@ import { useState } from 'react'
 import './QuizModal.css'
 
 const UI_TEXT = {
-  en: { title: 'Before You Sign', sub: 'Please read and check each point to confirm you understand.', close: 'Close', confirm: 'I Understand' },
-  es: { title: 'Antes de Firmar', sub: 'Lea y marque cada punto para confirmar que entiende.', close: 'Cerrar', confirm: 'Entiendo' },
-  fr: { title: 'Avant de Signer', sub: 'Veuillez lire et cocher chaque point pour confirmer votre compréhension.', close: 'Fermer', confirm: 'Je Comprends' },
-  de: { title: 'Vor dem Unterschreiben', sub: 'Bitte lesen und bestätigen Sie jeden Punkt.', close: 'Schließen', confirm: 'Ich Verstehe' },
-  pt: { title: 'Antes de Assinar', sub: 'Leia e marque cada ponto para confirmar que entende.', close: 'Fechar', confirm: 'Eu Entendo' },
-  it: { title: 'Prima di Firmare', sub: 'Legga e spunti ogni punto per confermare la comprensione.', close: 'Chiudi', confirm: 'Ho Capito' },
-  pl: { title: 'Przed Podpisaniem', sub: 'Przeczytaj i zaznacz każdy punkt, aby potwierdzić zrozumienie.', close: 'Zamknij', confirm: 'Rozumiem' },
-  hi: { title: 'हस्ताक्षर से पहले', sub: 'प्रत्येक बिंदु पढ़ें और समझ की पुष्टि करने के लिए चेक करें।', close: 'बंद करें', confirm: 'मैं समझता हूँ' },
+  en: { title: 'Before You Sign', sub: 'Please read and check each point to confirm you understand.', close: 'Close', confirm: 'I Understand', signed: 'You have now signed and confirmed.', ratingLabel: 'How would you rate your experience?', done: 'Done' },
+  es: { title: 'Antes de Firmar', sub: 'Lea y marque cada punto para confirmar que entiende.', close: 'Cerrar', confirm: 'Entiendo', signed: 'Ha firmado y confirmado.', ratingLabel: '¿Cómo calificaría su experiencia?', done: 'Listo' },
+  fr: { title: 'Avant de Signer', sub: 'Veuillez lire et cocher chaque point pour confirmer votre compréhension.', close: 'Fermer', confirm: 'Je Comprends', signed: 'Vous avez signé et confirmé.', ratingLabel: 'Comment évalueriez-vous votre expérience ?', done: 'Terminé' },
+  de: { title: 'Vor dem Unterschreiben', sub: 'Bitte lesen und bestätigen Sie jeden Punkt.', close: 'Schließen', confirm: 'Ich Verstehe', signed: 'Sie haben jetzt unterschrieben und bestätigt.', ratingLabel: 'Wie würden Sie Ihre Erfahrung bewerten?', done: 'Fertig' },
+  pt: { title: 'Antes de Assinar', sub: 'Leia e marque cada ponto para confirmar que entende.', close: 'Fechar', confirm: 'Eu Entendo', signed: 'Você assinou e confirmou.', ratingLabel: 'Como você avaliaria sua experiência?', done: 'Concluído' },
+  it: { title: 'Prima di Firmare', sub: 'Legga e spunti ogni punto per confermare la comprensione.', close: 'Chiudi', confirm: 'Ho Capito', signed: 'Hai firmato e confermato.', ratingLabel: 'Come valuteresti la tua esperienza?', done: 'Fatto' },
+  pl: { title: 'Przed Podpisaniem', sub: 'Przeczytaj i zaznacz każdy punkt, aby potwierdzić zrozumienie.', close: 'Zamknij', confirm: 'Rozumiem', signed: 'Podpisałeś i potwierdziłeś.', ratingLabel: 'Jak oceniasz swoje doświadczenie?', done: 'Gotowe' },
+  hi: { title: 'हस्ताक्षर से पहले', sub: 'प्रत्येक बिंदु पढ़ें और समझ की पुष्टि करने के लिए चेक करें।', close: 'बंद करें', confirm: 'मैं समझता हूँ', signed: 'आपने अब हस्ताक्षर और पुष्टि कर दी है।', ratingLabel: 'आप अपने अनुभव को कैसे रेट करेंगे?', done: 'हो गया' },
 }
 
 const FALLBACK_POINTS = [
@@ -20,16 +20,60 @@ const FALLBACK_POINTS = [
   'Signing this form means you have been informed and agree to proceed.',
 ]
 
-export default function QuizModal({ keyPoints = [], language = 'en', onClose, onComplete }) {
+export default function QuizModal({ keyPoints = [], language = 'en', onClose, onComplete, alreadySigned = false }) {
   const ui = UI_TEXT[language] || UI_TEXT.en
   const points = (keyPoints.length > 0 ? keyPoints : FALLBACK_POINTS)
     .map(p => p.replace(/__/g, ''))
   const [checked, setChecked] = useState(() => new Array(points.length).fill(false))
+  const [signed, setSigned] = useState(alreadySigned)
+  const [rating, setRating] = useState(0)
+  const [hovered, setHovered] = useState(0)
 
   const allChecked = checked.every(Boolean)
 
   const toggle = (i) => {
     setChecked(prev => prev.map((v, idx) => idx === i ? !v : v))
+  }
+
+  const handleConfirm = () => {
+    setSigned(true)
+    onComplete()
+  }
+
+  const handleDone = () => {
+    onClose()
+  }
+
+  if (signed) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal modal-confirmation">
+          <div className="confirm-checkmark">✓</div>
+          <p className="confirm-signed">{ui.signed}</p>
+
+          <div className="rating-section">
+            <p className="rating-label">{ui.ratingLabel}</p>
+            <div className="rating-stars">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  className={`star-btn ${star <= (hovered || rating) ? 'star-filled' : ''}`}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHovered(star)}
+                  onMouseLeave={() => setHovered(0)}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button className="modal-btn modal-btn-primary confirm-done-btn" onClick={handleDone}>
+            {ui.done}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -58,7 +102,7 @@ export default function QuizModal({ keyPoints = [], language = 'en', onClose, on
           <button
             className="modal-btn modal-btn-primary"
             disabled={!allChecked}
-            onClick={onComplete}
+            onClick={handleConfirm}
           >
             {ui.confirm}
           </button>
