@@ -28,3 +28,130 @@ body {
 .divider {
   background: #e0e0e0;
 }
+
+/* Centered upload panel */
+.upload-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8faff;
+  height: 100%;
+}
+
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 40px;
+  border: 2px dashed #c5d5f0;
+  border-radius: 16px;
+  background: #ffffff;
+  max-width: 340px;
+  text-align: center;
+}
+
+.upload-zone.muted {
+  border-color: #dde6f5;
+  background: #f8faff;
+}
+
+.upload-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.upload-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a2a4a;
+}
+
+.upload-sub {
+  font-size: 14px;
+  color: #6b7a99;
+  line-height: 1.5;
+}
+
+.upload-btn {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 10px 28px;
+  background: #1a73e8;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.upload-btn input {
+  display: none;
+}
+
+.upload-btn:hover {
+  background: #1558b0;
+}
+
+.status-msg {
+  font-size: 12px;
+  color: #e67e22;
+  background: #fef9f0;
+  border: 1px solid #f0c080;
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: left;
+  word-break: break-word;
+  width: 100%;
+}
+
+/* PDF preview panel */
+.pdf-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f0f4fa;
+}
+
+.pdf-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e7f0;
+  flex-shrink: 0;
+}
+
+.pdf-panel-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a2a4a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.swap-btn {
+  font-size: 13px;
+  color: #1a73e8;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.swap-btn input {
+  display: none;
+}
+
+.swap-btn:hover {
+  text-decoration: underline;
+}
+
+.pdf-embed {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
