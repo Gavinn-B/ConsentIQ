@@ -11,7 +11,7 @@ const UI_TEXT = {
   hi: { label: 'समझ जांच', quiz: 'प्रश्नोत्तरी लें', done: 'प्रश्नोत्तरी पूर्ण ✓', sign: 'हस्ताक्षर करें और पुष्टि करें' },
 }
 
-export default function BottomBar({ progress, quizComplete, onOpenQuiz, language = 'en' }) {
+export default function BottomBar({ progress, quizComplete, onOpenQuiz, onSign, language = 'en' }) {
   const ui = UI_TEXT[language] || UI_TEXT.en
   return (
     <div className="bottom-bar">
@@ -37,7 +37,7 @@ export default function BottomBar({ progress, quizComplete, onOpenQuiz, language
         <button
           className={`btn btn-sign ${quizComplete ? 'btn-sign-active' : ''}`}
           disabled={!quizComplete}
-          onClick={() => quizComplete && alert('Consent signed and recorded.')}
+          onClick={onSign}
         >
           {ui.sign}
         </button>

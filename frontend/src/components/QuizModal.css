@@ -131,3 +131,73 @@
   border-color: #a8c8ee;
   cursor: not-allowed;
 }
+
+/* Confirmation screen */
+.modal-confirmation {
+  align-items: center;
+  text-align: center;
+  gap: 0;
+  padding: 40px 36px;
+}
+
+.confirm-checkmark {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #4caf50;
+  color: white;
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+}
+
+.confirm-signed {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 32px;
+}
+
+.rating-section {
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.rating-label {
+  font-size: 13.5px;
+  color: #555;
+  margin-bottom: 14px;
+}
+
+.rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 36px;
+  cursor: pointer;
+  color: #ddd;
+  transition: color 0.1s, transform 0.1s;
+  line-height: 1;
+  padding: 0;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+}
+
+.star-filled {
+  color: #f5a623;
+}
+
+.confirm-done-btn {
+  padding: 10px 36px;
+  font-size: 14px;
+}
