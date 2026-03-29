@@ -1,6 +1,6 @@
 # ConsentIQ
 
-ClearConsent is a healthcare accessibility tool that helps patients understand medical consent forms. It uses AI to convert complex legal and medical language into plain-language summaries, supports 8 languages, reads content aloud, and walks patients through a comprehension checklist before they sign.
+ConsentIQ is a healthcare accessibility tool that helps patients understand medical consent forms. It uses AI to convert complex legal and medical language into plain-language summaries, supports 8 languages, reads content aloud, and walks patients through a comprehension checklist before they sign.
 
 ![App Preview](frontend/src/assets/Video%20Project%208.gif)
 
@@ -76,8 +76,8 @@ ClearConsent/
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/Gavinn-B/ClearConsent.git
-cd ClearConsent
+git clone https://github.com/Gavinn-B/ConsentIQ.git
+cd ConsentIQ
 ```
 
 ### 2. Configure environment variables
