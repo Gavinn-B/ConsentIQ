@@ -2,6 +2,8 @@
 
 ClearConsent is a healthcare accessibility tool that helps patients understand medical consent forms. It uses AI to convert complex legal and medical language into plain-language summaries, supports 8 languages, reads content aloud, and walks patients through a comprehension checklist before they sign.
 
+![App Preview](frontend/src/assets/Video%20Project%208.gif)
+
 ---
 
 ## Features
