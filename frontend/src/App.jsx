@@ -209,8 +209,13 @@ export default function App() {
 
     if (!plainText) return
 
-    // Strip formatting markers before sending to TTS
+    // Strip formatting markers before sending to TTS.
+    // Skip patient info sections — names, IDs, and DOBs don't need to be read aloud.
     const text = plainText
+      .filter(s => {
+        const title = (typeof s === 'object' ? s.title : '') || ''
+        return !/(patient\s*information|patient\s*info)/i.test(title)
+      })
       .map(s => {
         if (typeof s === 'object') {
           const body = (s.text || '')
