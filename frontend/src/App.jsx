@@ -8,14 +8,38 @@ import BottomBar from './components/BottomBar'
 import QuizModal from './components/QuizModal'
 import './App.css'
 
-// Sends raw text and selected language to the backend for AI simplification
-async function callServer(rawText, language) {
-  const res = await fetch('http://localhost:3000/api/simplify', {
+// Streams simplified sections from the server as Gemini generates them.
+// Calls onSection(section) for each plain section as it arrives,
+// then onDone({ jargon, keyPoints }) when the full response is complete.
+async function callServerStream(rawText, language, onSection, onDone, onError) {
+  const res = await fetch('http://localhost:3000/api/simplify-stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: rawText, language }),
   })
-  return res.json()
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let lineBuffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    lineBuffer += decoder.decode(value, { stream: true })
+    const lines = lineBuffer.split('\n')
+    lineBuffer = lines.pop() // hold incomplete line for next chunk
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      try {
+        const event = JSON.parse(line.slice(6))
+        if (event.type === 'section') onSection(event.section)
+        else if (event.type === 'done') onDone(event)
+        else if (event.type === 'error') onError(event.error)
+      } catch { /* malformed SSE line — skip */ }
+    }
+  }
 }
 
 export default function App() {
@@ -33,7 +57,7 @@ export default function App() {
   const [speechState, setSpeechState] = useState('idle') // 'idle' | 'speaking' | 'paused'
 
   const prevLanguage = useRef('en')
-  const audioRef = useRef(null)         // Holds the main TTS Audio object
+  const audioRef = useRef(null)           // Holds the main TTS Audio object
   const mainWasPlayingRef = useRef(false) // Tracks if main audio was playing when a popup opened
 
   const plainText = aiContent?.plain || null
@@ -44,26 +68,42 @@ export default function App() {
     if (!rawText || language === prevLanguage.current) return
     prevLanguage.current = language
 
-    setLoading(true)
-    setStatusMsg('Translating...')
-    callServer(rawText, language)
-      .then(data => {
-        if (data.plain) {
-          setAiContent(data)
-          setStatusMsg(null)
-        } else {
-          setStatusMsg(`Error: ${data.error || 'Unknown error'}`)
-        }
-      })
-      .catch(err => setStatusMsg(`Error: ${err.message}`))
-      .finally(() => setLoading(false))
+    // Defer initial state updates out of the synchronous effect body to satisfy the linter
+    setTimeout(() => {
+      setLoading(true)
+      setStatusMsg('Translating...')
+      setAiContent(null)
+    }, 0)
+
+    const sections = []
+    callServerStream(
+      rawText,
+      language,
+      (section) => {
+        sections.push(section)
+        // Show sections as they stream in; hide the loading overlay on first section
+        setLoading(false)
+        setStatusMsg(null)
+        setAiContent(prev => ({ ...prev, plain: [...sections] }))
+      },
+      ({ jargon, keyPoints }) => {
+        setAiContent(prev => ({ ...prev, jargon, keyPoints }))
+        setLoading(false)
+        setStatusMsg(null)
+      },
+      (err) => {
+        setStatusMsg(`Error: ${err}`)
+        setLoading(false)
+      }
+    )
   }, [language, rawText])
 
-  // Extracts text from the uploaded PDF using PDF.js, then sends it to the server
+  // Extracts text from the uploaded PDF using PDF.js, then streams it to the server
   const handleFileUpload = async (file) => {
     setLoading(true)
     setFileName(file.name)
     setPdfUrl(URL.createObjectURL(file))
+    setAiContent(null)
 
     try {
       const arrayBuffer = await file.arrayBuffer()
@@ -77,20 +117,29 @@ export default function App() {
 
       setRawText(text)
       setStatusMsg('Sending to server...')
-      const data = await callServer(text, language)
 
-      if (data.plain) {
-        setAiContent(data)
-        setStatusMsg(null)
-      } else if (data.error) {
-        setStatusMsg(`Server error: ${data.error}`)
-      } else {
-        setStatusMsg(`Unexpected response. Keys: ${Object.keys(data).join(', ')}`)
-      }
+      const sections = []
+      await callServerStream(
+        text,
+        language,
+        (section) => {
+          sections.push(section)
+          // Render first section immediately — hides the loading state
+          setLoading(false)
+          setStatusMsg(null)
+          setAiContent(prev => ({ ...prev, plain: [...sections] }))
+        },
+        ({ jargon, keyPoints }) => {
+          setAiContent(prev => ({ ...prev, jargon, keyPoints }))
+        },
+        (err) => {
+          setStatusMsg(`Error: ${err}`)
+          setLoading(false)
+        }
+      )
     } catch (err) {
       setStatusMsg(`Error: ${err.message}`)
       console.error('Failed to parse or contact backend:', err)
-    } finally {
       setLoading(false)
     }
   }

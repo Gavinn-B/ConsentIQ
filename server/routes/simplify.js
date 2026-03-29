@@ -17,24 +17,9 @@ const LANGUAGE_NAMES = {
   hi: 'Hindi',
 };
 
-router.post("/simplify", upload.single('file'), async (req, res) => {
-    try {
-        let rawText = '';
-
-        if (req.file) {
-            rawText = await extractTextFromPdf(req.file.buffer);
-        } else if (req.body.text) {
-            rawText = req.body.text;
-        } else {
-            return res.status(400).json({ error: 'No file or text provided' });
-        }
-
-        const language = req.body.language || 'en';
-        const languageName = LANGUAGE_NAMES[language] || 'English';
-
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-        const prompt = `You are helping patients understand a medical consent form.
+// Shared prompt builder used by both the standard and streaming routes
+function buildPrompt(rawText, languageName) {
+  return `You are helping patients understand a medical consent form.
 
 Rewrite the following consent form in simple, plain ${languageName} that anyone can understand.
 
@@ -71,35 +56,145 @@ Only return valid JSON. No markdown, no code blocks, just the raw JSON.
 
 Consent form text:
 ${rawText}`;
+}
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text().trim();
+// Strips markdown bold markers that Gemini sometimes adds to text fields
+function cleanSectionText(section) {
+  return { ...section, text: (section.text || '').replace(/\*\*([^*]+)\*?\*/g, '$1') };
+}
 
-        let parsed;
+// Safely parses a JSON string, extracting the outermost { } block if needed
+function safeParseJSON(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const stripped = text.replace(/^```json\s*/i, '').replace(/```[\s\S]*$/, '').trim();
+    const start = stripped.indexOf('{');
+    const end = stripped.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('No JSON object found in Gemini response');
+    return JSON.parse(stripped.slice(start, end + 1));
+  }
+}
+
+// Scans the accumulated buffer for complete section objects inside the "plain" array.
+// Uses bracket/quote tracking to safely find closed { } objects.
+// Returns only sections beyond the ones already sent (skipCount).
+function extractCompleteSections(buffer, skipCount) {
+  const plainStart = buffer.indexOf('"plain"');
+  if (plainStart === -1) return [];
+  const arrayStart = buffer.indexOf('[', plainStart);
+  if (arrayStart === -1) return [];
+
+  const sections = [];
+  let i = arrayStart + 1;
+  let depth = 0;
+  let objStart = -1;
+  let inString = false;
+  let escape = false;
+
+  while (i < buffer.length) {
+    const ch = buffer[i];
+    if (escape) { escape = false; i++; continue; }
+    if (ch === '\\' && inString) { escape = true; i++; continue; }
+    if (ch === '"') { inString = !inString; i++; continue; }
+    if (inString) { i++; continue; }
+
+    if (ch === '{') {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
         try {
-            parsed = JSON.parse(responseText);
-        } catch {
-            // Strip markdown fences, then extract just the outermost JSON object
-            const stripped = responseText.replace(/^```json\s*/i, '').replace(/```[\s\S]*$/, '').trim();
-            const start = stripped.indexOf('{');
-            const end = stripped.lastIndexOf('}');
-            if (start === -1 || end === -1) throw new Error('No JSON object found in Gemini response');
-            parsed = JSON.parse(stripped.slice(start, end + 1));
-        }
-
-        // Strip any markdown bold markers (**text** or **text:*) that Gemini sneaks into text fields
-        if (parsed.plain) {
-            parsed.plain = parsed.plain.map(section => ({
-                ...section,
-                text: (section.text || '').replace(/\*\*([^*]+)\*?\*/g, '$1'),
-            }));
-        }
-
-        res.json(parsed);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message || 'Failed to simplify document' });
+          const obj = JSON.parse(buffer.slice(objStart, i + 1));
+          sections.push(obj);
+        } catch { /* incomplete or malformed — skip */ }
+        objStart = -1;
+      }
+    } else if (ch === ']' && depth === 0) {
+      break;
     }
+    i++;
+  }
+
+  return sections.slice(skipCount);
+}
+
+// Standard (non-streaming) route — kept as fallback
+router.post("/simplify", upload.single('file'), async (req, res) => {
+  try {
+    let rawText = '';
+    if (req.file) {
+      rawText = await extractTextFromPdf(req.file.buffer);
+    } else if (req.body.text) {
+      rawText = req.body.text;
+    } else {
+      return res.status(400).json({ error: 'No file or text provided' });
+    }
+
+    const language = req.body.language || 'en';
+    const languageName = LANGUAGE_NAMES[language] || 'English';
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContent(buildPrompt(rawText, languageName));
+    const parsed = safeParseJSON(result.response.text().trim());
+
+    if (parsed.plain) parsed.plain = parsed.plain.map(cleanSectionText);
+    res.json(parsed);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Failed to simplify document' });
+  }
+});
+
+// Streaming route — sends each plain section as an SSE event as Gemini generates it,
+// then sends jargon + keyPoints in a final "done" event.
+router.post("/simplify-stream", upload.single('file'), async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const send = (payload) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+
+  try {
+    let rawText = '';
+    if (req.file) {
+      rawText = await extractTextFromPdf(req.file.buffer);
+    } else if (req.body.text) {
+      rawText = req.body.text;
+    } else {
+      send({ type: 'error', error: 'No file or text provided' });
+      return res.end();
+    }
+
+    const language = req.body.language || 'en';
+    const languageName = LANGUAGE_NAMES[language] || 'English';
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContentStream(buildPrompt(rawText, languageName));
+
+    let buffer = '';
+    let sentSections = 0;
+
+    // Stream chunks from Gemini; emit each complete section object immediately
+    for await (const chunk of result.stream) {
+      buffer += chunk.text();
+      const newSections = extractCompleteSections(buffer, sentSections);
+      for (const section of newSections) {
+        send({ type: 'section', section: cleanSectionText(section) });
+        sentSections++;
+      }
+    }
+
+    // Full response is now in buffer — parse for jargon and keyPoints
+    const parsed = safeParseJSON(buffer);
+    send({ type: 'done', jargon: parsed.jargon || {}, keyPoints: parsed.keyPoints || [] });
+    res.end();
+
+  } catch (err) {
+    console.error(err);
+    send({ type: 'error', error: err.message || 'Failed to simplify document' });
+    res.end();
+  }
 });
 
 export default router;
