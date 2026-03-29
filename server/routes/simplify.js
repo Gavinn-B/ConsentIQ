@@ -50,6 +50,11 @@ Return a JSON object with exactly three fields:
    - Preserve the original order of the fields exactly as they appear in the document.
    - Do NOT reword, reorder, or combine these fields.
 
+   IMPORTANT — Formatting rules for ALL sections:
+   - Do NOT use markdown bold (**text** or **text:*) anywhere inside "text" fields. Plain text only.
+   - Do NOT repeat the section title as a label inside the text. If the section is "Pre-Operative Assessment", do not also write "* Pre-Operative Assessment:" inside the text.
+   - Each bullet line should be a plain sentence or "* Label: Value", never "* **Label:*".
+
    Wrap ONLY true clinical or medical jargon terms in double underscores like __this__.
    CRITICAL: Terms inside __ must ALWAYS be written in English, even when the rest of the text is in ${languageName}.
    Do NOT wrap: document titles, section headings, patient names, doctor names, hospital names, dates, or common everyday words.
@@ -76,6 +81,14 @@ ${rawText}`;
         } catch {
             const cleaned = responseText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
             parsed = JSON.parse(cleaned);
+        }
+
+        // Strip any markdown bold markers (**text** or **text:*) that Gemini sneaks into text fields
+        if (parsed.plain) {
+            parsed.plain = parsed.plain.map(section => ({
+                ...section,
+                text: (section.text || '').replace(/\*\*([^*]+)\*?\*/g, '$1'),
+            }));
         }
 
         res.json(parsed);
