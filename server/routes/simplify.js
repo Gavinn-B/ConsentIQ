@@ -79,8 +79,12 @@ ${rawText}`;
         try {
             parsed = JSON.parse(responseText);
         } catch {
-            const cleaned = responseText.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
-            parsed = JSON.parse(cleaned);
+            // Strip markdown fences, then extract just the outermost JSON object
+            const stripped = responseText.replace(/^```json\s*/i, '').replace(/```[\s\S]*$/, '').trim();
+            const start = stripped.indexOf('{');
+            const end = stripped.lastIndexOf('}');
+            if (start === -1 || end === -1) throw new Error('No JSON object found in Gemini response');
+            parsed = JSON.parse(stripped.slice(start, end + 1));
         }
 
         // Strip any markdown bold markers (**text** or **text:*) that Gemini sneaks into text fields
