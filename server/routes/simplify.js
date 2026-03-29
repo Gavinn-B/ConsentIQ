@@ -58,9 +58,13 @@ Consent form text:
 ${rawText}`;
 }
 
-// Strips markdown bold markers that Gemini sometimes adds to text fields
+// Strips markdown bold markers that Gemini sometimes adds to text fields.
+// Handles cases where Gemini returns text as an array instead of a string.
 function cleanSectionText(section) {
-  return { ...section, text: (section.text || '').replace(/\*\*([^*]+)\*?\*/g, '$1') };
+  const raw = Array.isArray(section.text)
+    ? section.text.join('\n')
+    : (section.text || '');
+  return { ...section, text: raw.replace(/\*\*([^*]+)\*?\*/g, '$1') };
 }
 
 // Safely parses a JSON string, extracting the outermost { } block if needed.
