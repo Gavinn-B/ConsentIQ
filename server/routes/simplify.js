@@ -63,15 +63,39 @@ function cleanSectionText(section) {
   return { ...section, text: (section.text || '').replace(/\*\*([^*]+)\*?\*/g, '$1') };
 }
 
-// Safely parses a JSON string, extracting the outermost { } block if needed
+// Safely parses a JSON string, extracting the outermost { } block if needed.
+// Uses bracket counting to find the true end of the JSON object rather than
+// lastIndexOf, which can land inside a nested string value.
 function safeParseJSON(text) {
+  // Strip markdown fences first
+  const stripped = text.replace(/^```json\s*/i, '').replace(/```[\s\S]*$/, '').trim();
+
   try {
-    return JSON.parse(text);
+    return JSON.parse(stripped);
   } catch {
-    const stripped = text.replace(/^```json\s*/i, '').replace(/```[\s\S]*$/, '').trim();
     const start = stripped.indexOf('{');
-    const end = stripped.lastIndexOf('}');
-    if (start === -1 || end === -1) throw new Error('No JSON object found in Gemini response');
+    if (start === -1) throw new Error('No JSON object found in Gemini response');
+
+    // Walk forward counting braces to find where the outermost object closes
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let end = -1;
+
+    for (let i = start; i < stripped.length; i++) {
+      const ch = stripped[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
+    }
+
+    if (end === -1) throw new Error('Incomplete JSON object in Gemini response');
     return JSON.parse(stripped.slice(start, end + 1));
   }
 }
