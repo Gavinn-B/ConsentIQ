@@ -1,0 +1,7 @@
+FROM redis:7-alpine
+
+# Redis is used as an ephemeral rate-limit/cache store.
+# Disable persistence so cached medical responses are not written to disk.
+EXPOSE 6379
+
+CMD ["redis-server", "--save", "", "--appendonly", "no"]

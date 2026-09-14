@@ -1,5 +1,25 @@
 .env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+
+# Logs and local runtime files
+*.log
+server/logs/
 server/node_modules/
 frontend/node_modules/
 server/tmp/
 server/uploads/
+
+# Local Redis persistence files
+dump.rdb
+appendonly.aof
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/

@@ -1,10 +1,39 @@
 import { Router } from "express";
+import { createHash } from "node:crypto";
+import Redis from "ioredis";
+import { rateLimit } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
 import upload from "../middleware/upload.js";
 import { extractTextFromPdf } from "../utils/pdfParser.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = Router();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Redis is used only as an optimization/control-plane dependency. Both the
+// rate limiter and the cache deliberately fail open if Redis is unavailable.
+const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
+  maxRetriesPerRequest: 1,
+  enableOfflineQueue: false,
+});
+
+redis.on("error", (err) => {
+  console.error("Redis error:", err.message);
+});
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 25,
+  standardHeaders: true,
+  legacyHeaders: false,
+  passOnStoreError: true,
+  store: new RedisStore({
+    sendCommand: (...args) => redis.call(...args),
+  }),
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Rate limit exceeded" });
+  },
+});
 
 const LANGUAGE_NAMES = {
   en: 'English',
@@ -104,6 +133,14 @@ function safeParseJSON(text) {
   }
 }
 
+function cacheKey(rawText, language) {
+  return createHash("sha256")
+    .update(rawText)
+    .update("\0")
+    .update(language)
+    .digest("hex");
+}
+
 // Scans the accumulated buffer for complete section objects inside the "plain" array.
 // Uses bracket/quote tracking to safely find closed { } objects.
 // Returns only sections beyond the ones already sent (skipCount).
@@ -149,7 +186,7 @@ function extractCompleteSections(buffer, skipCount) {
 }
 
 // Standard (non-streaming) route — kept as fallback
-router.post("/simplify", upload.single('file'), async (req, res) => {
+router.post("/simplify", limiter, upload.single('file'), async (req, res) => {
   try {
     let rawText = '';
     if (req.file) {
@@ -176,7 +213,7 @@ router.post("/simplify", upload.single('file'), async (req, res) => {
 
 // Streaming route — sends each plain section as an SSE event as Gemini generates it,
 // then sends jargon + keyPoints in a final "done" event.
-router.post("/simplify-stream", upload.single('file'), async (req, res) => {
+router.post("/simplify-stream", limiter, upload.single('file'), async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -197,6 +234,25 @@ router.post("/simplify-stream", upload.single('file'), async (req, res) => {
 
     const language = req.body.language || 'en';
     const languageName = LANGUAGE_NAMES[language] || 'English';
+    const key = cacheKey(rawText, language);
+
+    // A cache failure is treated as a miss so Redis cannot take down the API.
+    let cached;
+    try {
+      const cachedValue = await redis.get(key);
+      if (cachedValue) cached = safeParseJSON(cachedValue);
+    } catch (err) {
+      console.error("Redis cache read error:", err.message);
+    }
+
+    if (cached) {
+      for (const section of cached.plain || []) {
+        send({ type: 'section', section: cleanSectionText(section) });
+      }
+      send({ type: 'done', jargon: cached.jargon || {}, keyPoints: cached.keyPoints || [] });
+      return res.end();
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContentStream(buildPrompt(rawText, languageName));
 
@@ -215,7 +271,23 @@ router.post("/simplify-stream", upload.single('file'), async (req, res) => {
 
     // Full response is now in buffer — parse for jargon and keyPoints
     const parsed = safeParseJSON(buffer);
+    if (parsed.plain) parsed.plain = parsed.plain.map(cleanSectionText);
+
+    // Emit any final sections that were not complete in an earlier chunk.
+    for (const section of (parsed.plain || []).slice(sentSections)) {
+      send({ type: 'section', section });
+    }
+
     send({ type: 'done', jargon: parsed.jargon || {}, keyPoints: parsed.keyPoints || [] });
+
+    try {
+      // Medical source text is not stored; the generated response expires in
+      // exactly one hour to enforce the cache's HIPAA retention limit.
+      await redis.setex(key, 3600, JSON.stringify(parsed));
+    } catch (err) {
+      console.error("Redis cache write error:", err.message);
+    }
+
     res.end();
 
   } catch (err) {
